@@ -61,19 +61,20 @@ int	check_input(int argc, char **ar)
 	return (result == 2);
 }
 
+
 int	last_check(t_codex *config)
 {
-	if (config->number_of_coders < 0)
+	if (config->number_of_coders <= 0)
 		return (0);
-	if (config->time_to_burnout < 0)
+	if (config->time_to_burnout <= 0)
 		return (0);
-	if (config->time_to_compile < 0)
+	if (config->time_to_compile <= 0)
 		return (0);
-	if (config->time_to_debug < 0)
+	if (config->time_to_debug <= 0)
 		return (0);
-	if (config->time_to_refactor < 0)
+	if (config->time_to_refactor <= 0)
 		return (0);
-	if (config->number_of_compiles_required < 0)
+	if (config->number_of_compiles_required <= 0)
 		return (0);
 	if (config->dongle_cooldown < 0)
 		return (0);
@@ -90,7 +91,7 @@ void	make_config(t_codex *config, char **ar)
 	config->number_of_compiles_required = atoi(ar[6]);
 	config->dongle_cooldown = atoi(ar[7]);
 	if (ar[8][0] == 'f')
-		config->scheduler = 1;
+		config->is_edf = 0;
 	else
-		config->scheduler = 2;
+		config->is_edf = 1;
 }

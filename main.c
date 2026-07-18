@@ -17,7 +17,9 @@
 
 int	main(int argc, char **argv)
 {
+
 	t_codex	*config;
+	t_node *queue = NULL;
 
 	config = malloc(sizeof(t_codex));
 	if (check_input(argc, argv) == 1)
@@ -32,12 +34,15 @@ int	main(int argc, char **argv)
 		printf("wrong\n");
 		exit(1);
 	}
-	printf("%d\n", config->number_of_coders);
-	printf("%d\n", config->time_to_burnout);
-	printf("%d\n", config->time_to_compile);
-	printf("%d\n", config->time_to_debug);
-	printf("%d\n", config->time_to_refactor);
-	printf("%d\n", config->number_of_compiles_required);
-	printf("%d\n", config->dongle_cooldown);
-	printf("%d\n", config->scheduler);
+
+	t_node *node1 = ft_new_node(1);
+	t_node *node2 = ft_new_node(2);
+	t_node *node3 = ft_new_node(3);
+	t_node *node4 = ft_new_node(4);
+
+	ft_add_back(&queue, node1);
+	ft_add_back(&queue, node2);
+	ft_add_back(&queue, node3);
+	ft_add_back(&queue, node4);
+
 }
