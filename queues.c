@@ -11,28 +11,28 @@
 /* ************************************************************************** */
 #include "codexion.h"
 
-t_node	*ft_new_node(int content)
+t_node	*ft_new_node(t_coder *coder)
 {
 	t_node	*new_node;
 
 	new_node = (t_node *)malloc(sizeof(t_node));
 	if (!new_node)
 		return (NULL);
-	new_node->content = content;
+	new_node->coder = coder;
 	new_node->next = NULL;
 	return (new_node);
 }
 
-int ft_pop_node(t_node **queue)
+t_coder *ft_pop_node(t_node **queue)
 {
     t_node *popped_node;
-	int content;
+	t_coder *coder;
 
     popped_node = *queue;
     *queue = popped_node->next;
-	content = popped_node->content;	
+	coder = popped_node->coder;	
 
-    return (content);
+    return (coder);
 }
 
 void	ft_add_back(t_node **queue, t_node *new)

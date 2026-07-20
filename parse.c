@@ -94,4 +94,5 @@ void	make_config(t_codex *config, char **ar)
 		config->is_edf = 0;
 	else
 		config->is_edf = 1;
+	return;
 }
