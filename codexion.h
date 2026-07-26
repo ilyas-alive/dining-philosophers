@@ -93,7 +93,9 @@ void init_config(t_codex *config);
 
 void init_coders(t_codex *config);
 void coder_init(t_coder *coder, t_codex *config, int position);
-//
+
+//time
+long gettimenow();
 
 
 

@@ -3,7 +3,7 @@ NAME = a
 CC = gcc
 CFLAGS = -Wall -Wextra -Werror -pthread
 
-SRCS = main.c parse.c queues.c init_config.c
+SRCS = main.c parse.c queues.c init_config.c get_time.c
 OBJS = $(SRCS:.c=.o)
 
 all: $(NAME)

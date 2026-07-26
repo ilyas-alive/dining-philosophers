@@ -29,6 +29,7 @@ int	main(int argc, char **argv)
 		printf("wrong\n");
 		exit(1);
 	}
+
 	init_config(config);
 	config->dongles[2].cooldown_time = (long)7;
 	int i = 0;
