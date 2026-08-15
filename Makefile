@@ -1,4 +1,4 @@
-NAME = a
+NAME = z
 
 CC = gcc
 CFLAGS = -Wall -Wextra -Werror -pthread

@@ -39,8 +39,6 @@ void coder_init(t_coder *coder, t_codex *config, int position)
 	coder->ldongle = &config->dongles[(position) % config->number_of_coders]; 
 	coder->id = position;
 	coder->count = 0;
-	//coder->last_compilation = 0;
-	//pthread_mutex_init(&coder->last_complock, NULL);
 }
 
 void init_coders(t_codex *config)

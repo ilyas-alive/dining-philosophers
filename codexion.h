@@ -59,6 +59,8 @@ struct	s_coder
 	t_codex		*config;
 	t_dongle	*rdongle;
 	t_dongle	*ldongle;
+	long	time_compiled;
+	pthread_mutex_t	time_mutex;
 	int			id;
 	int			count;
 	pthread_t	thread;
@@ -96,6 +98,12 @@ void coder_init(t_coder *coder, t_codex *config, int position);
 
 //time
 long gettimenow();
+
+//routine
+int place_dongle(t_dongle *dongle, t_coder *coder);
+int get_dongles(t_coder *coder);
+
+
 
 
 
