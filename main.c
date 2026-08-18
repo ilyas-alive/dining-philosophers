@@ -14,9 +14,9 @@
 int	main(int argc, char **argv)
 {
 
-	t_codex	*config;
+	t_config	*config;
 
-	config = malloc(sizeof(t_codex));
+	config = malloc(sizeof(t_config));
 	if (check_input(argc, argv) == 1)
 		make_config(config, argv);
 	else

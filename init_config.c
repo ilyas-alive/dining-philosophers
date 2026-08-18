@@ -20,7 +20,7 @@ void dongle_init(t_dongle *dongle, long cooldown_time)
 }
 
 
-void init_dongles(t_codex *config)
+void init_dongles(t_config *config)
 {
 	int i = 0;
 
@@ -32,7 +32,7 @@ void init_dongles(t_codex *config)
 	}
 }
 
-void coder_init(t_coder *coder, t_codex *config, int position)
+void coder_init(t_coder *coder, t_config *config, int position)
 {
 	coder->config = config;
 	coder->rdongle = &config->dongles[(position+1) % config->number_of_coders]; 
@@ -41,7 +41,7 @@ void coder_init(t_coder *coder, t_codex *config, int position)
 	coder->count = 0;
 }
 
-void init_coders(t_codex *config)
+void init_coders(t_config *config)
 {
 	int i = 0;
 	config->coders = (t_coder *)malloc(config->number_of_coders * sizeof(t_coder));
@@ -53,7 +53,7 @@ void init_coders(t_codex *config)
 
 }
 
-void init_config(t_codex *config)
+void init_config(t_config *config)
 {
 	init_dongles(config);
 	init_coders(config);

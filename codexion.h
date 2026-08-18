@@ -24,7 +24,7 @@
 typedef struct s_dongle t_dongle;
 typedef	struct	s_coder t_coder;
 typedef	struct	s_node t_node;
-typedef	struct	s_config t_codex;
+typedef	struct	s_config t_config;
 
 struct	s_config
 {
@@ -56,7 +56,7 @@ struct	s_dongle
 
 struct	s_coder
 {
-	t_codex		*config;
+	t_config	*config;
 	t_dongle	*rdongle;
 	t_dongle	*ldongle;
 	long	time_compiled;
@@ -83,18 +83,18 @@ void	ft_add_back(t_node **queue, t_node *new);
 int	digit_check(char **str);
 int	check_input(int argc, char **ar);
 int	fifo_or_edf(char **ar);
-int	last_check(t_codex *config);
-void make_config(t_codex *config, char **ar);
+int	last_check(t_config *config);
+void make_config(t_config *config, char **ar);
 //
 
 
 //init
 void dongle_init(t_dongle *dongle, long cooldown_time);
-void init_dongles(t_codex *config);
-void init_config(t_codex *config);
+void init_dongles(t_config *config);
+void init_config(t_config *config);
 
-void init_coders(t_codex *config);
-void coder_init(t_coder *coder, t_codex *config, int position);
+void init_coders(t_config *config);
+void coder_init(t_coder *coder, t_config *config, int position);
 
 //time
 long gettimenow();

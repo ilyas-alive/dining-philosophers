@@ -62,7 +62,7 @@ int	check_input(int argc, char **ar)
 }
 
 
-int	last_check(t_codex *config)
+int	last_check(t_config *config)
 {
 	if (config->number_of_coders <= 0)
 		return (0);
@@ -81,7 +81,7 @@ int	last_check(t_codex *config)
 	return (1);
 }
 
-void	make_config(t_codex *config, char **ar)
+void	make_config(t_config *config, char **ar)
 {
 	config->number_of_coders = atoi(ar[1]);
 	config->time_to_burnout = atoi(ar[2]);

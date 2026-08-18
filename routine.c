@@ -16,7 +16,7 @@ int get_dongles(t_coder *coder)
 {
     t_dongle    *first;
     t_dongle    *second;
-    t_codex       *config;
+    t_config       *config;
 
     config = coder->config;
     if (coder->id % 2 != 0)
@@ -36,7 +36,7 @@ int get_dongles(t_coder *coder)
 
 int place_dongle(t_dongle *dongle, t_coder *coder)
 {
-    t_codex   *config;
+    t_config   *config;
 
     config = coder->config;
     if (config->is_edf)
@@ -47,7 +47,7 @@ int place_dongle(t_dongle *dongle, t_coder *coder)
 }
 int	compiling(t_coder *coder)
 {
-	t_codex	*config;
+	t_config	*config;
 
 	config = coder->config;
 	get_dongles(coder);
@@ -63,7 +63,7 @@ int	compiling(t_coder *coder)
 
 void	*coder_routine(void *arg)
 {
-	t_codex	*config;
+	t_config	*config;
 	t_coder	*coder;
 
 	coder = (t_coder *)arg;
