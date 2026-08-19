@@ -11,31 +11,76 @@
 /* ************************************************************************** */
 #include "codexion.h"
 
+static void	abort_threads(t_config *config, int count)
+{
+	pthread_mutex_lock(&config->over_lock);
+	config->is_over = 1;
+	pthread_mutex_unlock(&config->over_lock);
+	wake_dongles(config);
+	while (count > 0)
+	{
+		count--;
+		pthread_join(config->coders[count].thread, NULL);
+	}
+	pthread_join(config->monitor, NULL);
+}
+
+int	start_threads(t_config *config)
+{
+	int	idx;
+
+	if (pthread_create(&config->monitor, NULL, monitor_routine, config) != 0)
+		return (0);
+	idx = 0;
+	while (idx < config->number_of_coders)
+	{
+		if (pthread_create(&config->coders[idx].thread, NULL,
+				coder_routine, &config->coders[idx]) != 0)
+		{
+			abort_threads(config, idx);
+			return (0);
+		}
+		idx++;
+	}
+	return (1);
+}
+
+void	wait_threads(t_config *config)
+{
+	int	idx;
+
+	idx = 0;
+	while (idx < config->number_of_coders)
+	{
+		pthread_join(config->coders[idx].thread, NULL);
+		idx++;
+	}
+	pthread_join(config->monitor, NULL);
+}
+
 int	main(int argc, char **argv)
 {
+	t_config	config;
 
-	t_config	*config;
-
-	config = malloc(sizeof(t_config));
-	if (check_input(argc, argv) == 1)
-		make_config(config, argv);
-	else
+	memset(&config, 0, sizeof(t_config));
+	if (check_input(argc, argv) == 0)
 	{
-		printf("wrong");
-		exit(1);
+		write(2, "Error: invalid arguments\n", 25);
+		return (1);
 	}
-	if (last_check(config) == 0)
+	make_config(&config, argv);
+	if (last_check(&config) == 0)
 	{
-		printf("wrong\n");
-		exit(1);
+		write(2, "Error: invalid arguments\n", 25);
+		return (1);
 	}
-
-	init_config(config);
-	config->dongles[2].cooldown_time = (long)7;
-	int i = 0;
-	while(i < config->number_of_coders)
+	init_config(&config);
+	if (start_threads(&config) == 0)
 	{
-		printf("this is %d, %ld\n",i ,  config->dongles[i].cooldown_time);
-		i++;
+		free_config(&config);
+		return (1);
 	}
+	wait_threads(&config);
+	free_config(&config);
+	return (0);
 }
