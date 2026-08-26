@@ -6,17 +6,11 @@
 /*   By: iel-ghan <iel-ghan@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/05 13:03:59 by iel-ghan          #+#    #+#             */
-/*   Updated: 2026/08/26 17:33:45 by iel-ghan         ###   ########.fr       */
+/*   Updated: 2026/08/26 19:29:45 by iel-ghan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
 #include "codexion.h"
-
-void	check_and_sleep(t_coder *coder)
-{
-	if ((coder->id % 2) == 0)
-		usleep(500);
-}
 
 int	compiling(t_coder *coder)
 {
@@ -59,7 +53,6 @@ void	*coder_routine(void *data)
 
 	coder = (t_coder *)data;
 	config = coder->config;
-	check_and_sleep(coder);
 	while (!end_simulation(config))
 	{
 		if (!coder_cycle_step(coder, config))

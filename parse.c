@@ -6,7 +6,7 @@
 /*   By: iel-ghan <iel-ghan@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/11 11:55:41 by iel-ghan          #+#    #+#             */
-/*   Updated: 2026/08/26 17:35:37 by iel-ghan         ###   ########.fr       */
+/*   Updated: 2026/08/26 17:51:53 by iel-ghan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #include "codexion.h"
@@ -83,4 +83,3 @@ void	make_config(t_config *config, char **ar)
 	config->dongle_cooldown = (long)atoi(ar[7]);
 	config->is_edf = (strcmp(ar[8], "edf") == 0);
 }
-
