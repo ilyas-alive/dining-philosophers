@@ -1,88 +1,91 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   main.c                                             :+:      :+:    :+:   */
+/*   routine.c                                          :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: iel-ghan <iel-ghan@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/30 04:42:36 by iel-ghan          #+#    #+#             */
-/*   Updated: 2026/04/11 11:58:47 by iel-ghan         ###   ########.fr       */
+/*   Updated: 2026/08/26 17:36:08 by iel-ghan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-
 #include "codexion.h"
 
-int get_dongles(t_coder *coder)
+static void	add_to_queue(t_dongle *dongle, t_node *node, int is_edf)
 {
-    t_dongle    *first;
-    t_dongle    *second;
-    t_config       *config;
-
-    config = coder->config;
-    if (coder->id % 2 != 0)
-    {
-        first = coder->ldongle;
-        second = coder->rdongle;
-    }
-    else
-    {
-        first = coder->rdongle;
-        second = coder->ldongle;
-    }
-    place_dongle(first, coder)
-    place_dongle(second, coder)
-    return (1);
+	if (is_edf != 0)
+		ft_add_sorted(&dongle->queue, node);
+	else
+		ft_add_back(&dongle->queue, node);
 }
 
-int place_dongle(t_dongle *dongle, t_coder *coder)
+static int	wait_for_turn(t_coder *coder, t_dongle *dongle)
 {
-    t_config   *config;
+	struct timespec	ts;
 
-    config = coder->config;
-    if (config->is_edf)
-        edf(dongle, coder);
-    else
-        fifo(dongle, coder);
-    return (1);
-}
-int	compiling(t_coder *coder)
-{
-	t_config	*config;
-
-	config = coder->config;
-	get_dongles(coder);
-	pthread_mutex_lock(&coder->lcs_mutex);
-	coder->time_compiled = get_time_ms();
-	pthread_mutex_unlock(&coder->time_mutex);
-	log_action("is compiling", coder);
-	precise_sleep(config->time_to_compile, config);
-	release_dongles(coder);
+	while (1)
+	{
+		if (end_simulation(coder->config))
+		{
+			ft_remove_node(&dongle->queue, coder);
+			pthread_mutex_unlock(&dongle->mutex);
+			return (0);
+		}
+		if (dongle->queue && dongle->queue->coder == coder
+			&& dongle->available && get_time() >= dongle->cooldown_end)
+			break ;
+		ms_to_timespec(dongle, &ts);
+		pthread_cond_timedwait(&dongle->cond, &dongle->mutex, &ts);
+	}
 	return (1);
 }
 
-
-void	*coder_routine(void *arg)
+int	take_dongle(t_coder *coder, t_dongle *dongle)
 {
-	t_config	*config;
-	t_coder	*coder;
+	t_node	*node;
 
-	coder = (t_coder *)arg;
-	config = coder->config;
-	check_and_sleep(coder);
-	while (1)
-	{
-		compile_phase(coder)
-		log_action("is debugging", coder);
-		precise_sleep(sim->time_to_debug, sim);
-		log_action("is refactoring", coder);
-		precise_sleep(sim->time_to_refactor, sim);
-		if (!safe_count(coder))
-			return (NULL);
-		usleep(100);
-	}
-	return (NULL);
+	node = ft_new_node(coder);
+	if (!node)
+		return (0);
+	pthread_mutex_lock(&coder->time_mutex);
+	node->priority = coder->time_compiled + coder->config->time_to_burnout;
+	pthread_mutex_unlock(&coder->time_mutex);
+	pthread_mutex_lock(&dongle->mutex);
+	add_to_queue(dongle, node, coder->config->is_edf);
+	if (!wait_for_turn(coder, dongle))
+		return (0);
+	ft_pop_node(&dongle->queue);
+	dongle->available = 0;
+	pthread_mutex_unlock(&dongle->mutex);
+	ft_log("has taken a dongle", coder);
+	return (1);
 }
 
+int	get_dongles(t_coder *coder)
+{
+	t_dongle	*first;
+	t_dongle	*second;
 
- 
-
+	first = coder->rdongle;
+	second = coder->ldongle;
+	if ((coder->id % 2) != 0)
+	{
+		first = coder->ldongle;
+		second = coder->rdongle;
+	}
+	if (!take_dongle(coder, first))
+		return (0);
+	if (coder->config->number_of_coders == 1)
+	{
+		while (!end_simulation(coder->config))
+			usleep(200);
+		release_dongle(first, coder->config);
+		return (0);
+	}
+	if (!take_dongle(coder, second))
+	{
+		release_dongle(first, coder->config);
+		return (0);
+	}
+	return (1);
+}

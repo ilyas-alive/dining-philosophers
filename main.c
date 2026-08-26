@@ -6,7 +6,7 @@
 /*   By: iel-ghan <iel-ghan@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/04/10 08:18:46 by iel-ghan          #+#    #+#             */
-/*   Updated: 2026/04/11 11:58:47 by iel-ghan         ###   ########.fr       */
+/*   Updated: 2026/08/26 17:35:04 by iel-ghan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #include "codexion.h"
@@ -27,33 +27,33 @@ static void	abort_threads(t_config *config, int count)
 
 int	start_threads(t_config *config)
 {
-	int	idx;
+	int	i;
 
 	if (pthread_create(&config->monitor, NULL, monitor_routine, config) != 0)
 		return (0);
-	idx = 0;
-	while (idx < config->number_of_coders)
+	i = 0;
+	while (i < config->number_of_coders)
 	{
-		if (pthread_create(&config->coders[idx].thread, NULL,
-				coder_routine, &config->coders[idx]) != 0)
+		if (pthread_create(&config->coders[i].thread, NULL,
+				coder_routine, &config->coders[i]) != 0)
 		{
-			abort_threads(config, idx);
+			abort_threads(config, i);
 			return (0);
 		}
-		idx++;
+		i++;
 	}
 	return (1);
 }
 
 void	wait_threads(t_config *config)
 {
-	int	idx;
+	int	i;
 
-	idx = 0;
-	while (idx < config->number_of_coders)
+	i = 0;
+	while (i < config->number_of_coders)
 	{
-		pthread_join(config->coders[idx].thread, NULL);
-		idx++;
+		pthread_join(config->coders[i].thread, NULL);
+		i++;
 	}
 	pthread_join(config->monitor, NULL);
 }

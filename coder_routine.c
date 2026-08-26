@@ -5,56 +5,65 @@
 /*                                                    +:+ +:+         +:+     */
 /*   By: iel-ghan <iel-ghan@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2026/07/25 14:28:41 by iel-ghan          #+#    #+#             */
-/*   Updated: 2026/07/25 14:34:40 by iel-ghan         ###   ########.fr       */
+/*   Created: 2026/08/05 13:03:59 by iel-ghan          #+#    #+#             */
+/*   Updated: 2026/08/26 17:33:45 by iel-ghan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+
 #include "codexion.h"
 
-int take_dongle(t_coder *coder, t_dongle *dongle)
+void	check_and_sleep(t_coder *coder)
 {
-	pthread_mutex_lock(&dongle->mutex, NULL);
-
-
+	if ((coder->id % 2) == 0)
+		usleep(500);
 }
 
-int take_dongles(t_coder *coder)
+int	compiling(t_coder *coder)
 {
-	t_dongle *first;
-	t_dongle *second;
-	if (coder->id % 2)
+	t_config	*config;
+
+	config = coder->config;
+	if (!get_dongles(coder))
+		return (0);
+	if (end_simulation(config))
 	{
-		first = coder->ldongle
-		second = coder->rdongle;
+		release_dongles(coder);
+		return (0);
 	}
-	else
-	{
-		first = coder->rdongle;
-		second = coder->ldongle
-
-	}
-	take_dongle(coder, first);
-	take_dongle(coder, second);
-
+	pthread_mutex_lock(&coder->time_mutex);
+	coder->time_compiled = get_time();
+	pthread_mutex_unlock(&coder->time_mutex);
+	ft_log("is compiling", coder);
+	ft_sleep(config->time_to_compile, config);
+	release_dongles(coder);
+	return (safe_count(coder));
 }
 
-int simulation_is_over(t_config *config)
+static int	coder_cycle_step(t_coder *coder, t_config *config)
 {
-
+	if (!compiling(coder) || end_simulation(config))
+		return (0);
+	ft_log("is debugging", coder);
+	ft_sleep(config->time_to_debug, config);
+	if (end_simulation(config))
+		return (0);
+	ft_log("is refactoring", coder);
+	ft_sleep(config->time_to_refactor, config);
+	return (1);
 }
 
-void *routine(void *data)
+void	*coder_routine(void *data)
 {
-	t_coder *coder;
-	t_config *config:
+	t_coder		*coder;
+	t_config	*config;
+
 	coder = (t_coder *)data;
 	config = coder->config;
-	
-	while(1)
+	check_and_sleep(coder);
+	while (!end_simulation(config))
 	{
-		if (simulation_is_over(config))
+		if (!coder_cycle_step(coder, config))
 			break ;
-
 	}
+	return (NULL);
 }
-

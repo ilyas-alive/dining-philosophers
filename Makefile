@@ -1,9 +1,9 @@
 NAME = z
 
 CC = gcc
-CFLAGS = -Wall -Wextra -Werror -pthread
+CFLAGS = -Wall -Wextra -Werror -pthread 
 
-SRCS = main.c parse.c queues.c init_config.c get_time.c cleanup.c coder_routine.c monitor.c routine.c utils.c
+SRCS = main.c parse.c queues.c init_config.c get_time.c free.c coder_routine.c monitor.c routine.c utils.c
 
 OBJS = $(SRCS:.c=.o)
 
