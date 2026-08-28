@@ -124,4 +124,3 @@ void	wait_threads(t_config *config);
 void	free_config(t_config *config);
 
 #endif
-

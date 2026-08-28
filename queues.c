@@ -102,4 +102,3 @@ void	ft_remove_node(t_node **queue, t_coder *coder)
 		free(target);
 	}
 }
-

@@ -53,4 +53,3 @@ void	ft_sleep(long ms, t_config *config)
 		usleep(100);
 	}
 }
-
