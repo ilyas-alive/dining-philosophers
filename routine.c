@@ -52,6 +52,9 @@ int	take_dongle(t_coder *coder, t_dongle *dongle)
 	pthread_mutex_unlock(&coder->time_mutex);
 	pthread_mutex_lock(&dongle->mutex);
 	add_to_queue(dongle, node, coder->config->is_edf);
+	pthread_mutex_unlock(&dongle->mutex);
+	usleep(100);
+	pthread_mutex_lock(&dongle->mutex);
 	if (!wait_for_turn(coder, dongle))
 		return (0);
 	ft_pop_node(&dongle->queue);

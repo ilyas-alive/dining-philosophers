@@ -104,7 +104,6 @@ void	ms_to_timespec(t_dongle *dongle, struct timespec *ts);
 int		take_dongle(t_coder *coder, t_dongle *dongle);
 int		get_dongles(t_coder *coder);
 int		compiling(t_coder *coder);
-void	check_and_sleep(t_coder *coder);
 void	*coder_routine(void *data);
 void	*monitor_routine(void *data);
 

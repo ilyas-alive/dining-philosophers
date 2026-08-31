@@ -12,6 +12,12 @@
 
 #include "codexion.h"
 
+static void	odd_first(t_coder *coder)
+{
+	if ((coder->id % 2) != 0)
+		usleep(500);
+}
+
 int	compiling(t_coder *coder)
 {
 	t_config	*config;
@@ -53,6 +59,7 @@ void	*coder_routine(void *data)
 
 	coder = (t_coder *)data;
 	config = coder->config;
+	odd_first(coder);
 	while (!end_simulation(config))
 	{
 		if (!coder_cycle_step(coder, config))
