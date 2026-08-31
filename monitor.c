@@ -71,7 +71,7 @@ void	*monitor_routine(void *data)
 	{
 		if (burnout_check(config, get_time()))
 			break ;
-		usleep(500);
+		usleep(100);
 	}
 	return (NULL);
 }
