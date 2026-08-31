@@ -41,6 +41,7 @@ static int	burnout_check(t_config *config, long now)
 			config->is_over = 1;
 			pthread_mutex_unlock(&config->over_lock);
 			wake_dongles(config);
+			usleep(10);
 			ft_log("burned out", &config->coders[i]);
 			return (1);
 		}
