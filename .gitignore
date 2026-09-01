@@ -1,8 +1,9 @@
 #Custom
 a
 cat.txt
-codexion
 *tst
+test.sh
+/test_logs
 
 # Prerequisites
 *.d
