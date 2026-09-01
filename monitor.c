@@ -9,6 +9,7 @@
 /*   Updated: 2026/08/26 17:35:24 by iel-ghan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
+
 #include "codexion.h"
 
 static int	is_coder_burned(t_coder *coder, long now, t_config *config)

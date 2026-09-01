@@ -64,12 +64,13 @@ int	last_check(t_config *config)
 	if (config->number_of_coders <= 0
 		|| config->time_to_burnout <= 0
 		|| config->time_to_compile <= 0
-		|| config->time_to_debug <= 0
-		|| config->time_to_refactor <= 0
-		|| config->compiles_needed <= 0
+		|| config->time_to_debug < 0
+		|| config->time_to_refactor < 0
+		|| config->compiles_needed < 0
 		|| config->dongle_cooldown < 0)
 		return (0);
 	return (1);
+
 }
 
 void	make_config(t_config *config, char **ar)
