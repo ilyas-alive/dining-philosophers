@@ -6,7 +6,7 @@
 /*   By: iel-ghan <iel-ghan@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/07/30 04:42:36 by iel-ghan          #+#    #+#             */
-/*   Updated: 2026/08/26 17:36:08 by iel-ghan         ###   ########.fr       */
+/*   Updated: 2026/09/01 13:44:06 by iel-ghan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 #include "codexion.h"
@@ -52,9 +52,6 @@ int	take_dongle(t_coder *coder, t_dongle *dongle)
 	pthread_mutex_unlock(&coder->time_mutex);
 	pthread_mutex_lock(&dongle->mutex);
 	add_to_queue(dongle, node, coder->config->is_edf);
-	pthread_mutex_unlock(&dongle->mutex);
-	usleep(100);
-	pthread_mutex_lock(&dongle->mutex);
 	if (!wait_for_turn(coder, dongle))
 		return (0);
 	ft_pop_node(&dongle->queue);

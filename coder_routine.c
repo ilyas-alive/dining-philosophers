@@ -6,7 +6,7 @@
 /*   By: iel-ghan <iel-ghan@student.1337.ma>        +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2026/08/05 13:03:59 by iel-ghan          #+#    #+#             */
-/*   Updated: 2026/08/26 19:29:45 by iel-ghan         ###   ########.fr       */
+/*   Updated: 2026/09/01 13:42:20 by iel-ghan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -14,7 +14,7 @@
 
 static void	odd_first(t_coder *coder)
 {
-	if ((coder->id % 2) != 0)
+	if ((coder->id % 2) == 0)
 		usleep(500);
 }
 
