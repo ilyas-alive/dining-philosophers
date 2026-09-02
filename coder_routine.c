@@ -12,11 +12,11 @@
 
 #include "codexion.h"
 
-static void	odd_first(t_coder *coder)
-{
-	if ((coder->id % 2) == 0)
-		usleep(500);
-}
+//static void	odd_first(t_coder *coder)
+//{
+//	if ((coder->id % 2) != 0)
+//		usleep(500);
+//}
 
 int	compiling(t_coder *coder)
 {
@@ -49,6 +49,7 @@ static int	coder_cycle_step(t_coder *coder, t_config *config)
 		return (0);
 	ft_log("is refactoring", coder);
 	ft_sleep(config->time_to_refactor, config);
+	usleep(100);
 	return (1);
 }
 
@@ -59,7 +60,7 @@ void	*coder_routine(void *data)
 
 	coder = (t_coder *)data;
 	config = coder->config;
-	odd_first(coder);
+//	odd_first(coder);
 	while (!end_simulation(config))
 	{
 		if (!coder_cycle_step(coder, config))

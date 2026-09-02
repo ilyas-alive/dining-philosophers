@@ -66,13 +66,18 @@ int	get_dongles(t_coder *coder)
 	t_dongle	*first;
 	t_dongle	*second;
 
-	first = coder->rdongle;
-	second = coder->ldongle;
-	if ((coder->id % 2) != 0)
+	if (coder->id == (coder->config->number_of_coders - 1))
+	{
+		first = coder->rdongle;
+		second = coder->ldongle;
+	}
+
+	else
 	{
 		first = coder->ldongle;
 		second = coder->rdongle;
 	}
+
 	if (!take_dongle(coder, first))
 		return (0);
 	if (coder->config->number_of_coders == 1)
