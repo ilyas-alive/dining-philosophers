@@ -94,6 +94,7 @@ t_coder	*ft_pop_node(t_node **queue);
 void	ft_add_back(t_node **queue, t_node *new);
 void	ft_add_sorted(t_node **queue, t_node *new);
 void	ft_remove_node(t_node **queue, t_coder *coder);
+void	add_to_queue(t_dongle *dongle, t_node *node, int is_edf);
 
 //time
 long	get_time(void);

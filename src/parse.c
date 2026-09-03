@@ -70,7 +70,6 @@ int	last_check(t_config *config)
 		|| config->dongle_cooldown < 0)
 		return (0);
 	return (1);
-
 }
 
 void	make_config(t_config *config, char **ar)

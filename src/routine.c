@@ -11,14 +11,6 @@
 /* ************************************************************************** */
 #include "codexion.h"
 
-static void	add_to_queue(t_dongle *dongle, t_node *node, int is_edf)
-{
-	if (is_edf != 0)
-		ft_add_sorted(&dongle->queue, node);
-	else
-		ft_add_back(&dongle->queue, node);
-}
-
 static int	wait_for_turn(t_coder *coder, t_dongle *dongle)
 {
 	struct timespec	ts;
@@ -57,7 +49,6 @@ static void	register_dongle(t_coder *coder, t_dongle *dongle)
 	if (coder->config->is_edf)
 		node->priority = coder->time_compiled + coder->config->time_to_burnout;
 	pthread_mutex_unlock(&coder->time_mutex);
-	
 	pthread_mutex_lock(&dongle->mutex);
 	add_to_queue(dongle, node, coder->config->is_edf);
 	pthread_mutex_unlock(&dongle->mutex);
@@ -75,29 +66,31 @@ static int	wait_and_take(t_coder *coder, t_dongle *dongle)
 	return (1);
 }
 
+static void	assign_dongles(t_coder *coder, t_dongle **first, t_dongle **second)
+{
+	if (coder->id == (coder->config->number_of_coders - 1))
+	{
+		*first = coder->rdongle;
+		*second = coder->ldongle;
+	}
+	else
+	{
+		*first = coder->ldongle;
+		*second = coder->rdongle;
+	}
+}
+
 int	get_dongles(t_coder *coder)
 {
 	t_dongle	*first;
 	t_dongle	*second;
 
-	if (coder->id == (coder->config->number_of_coders - 1))
-	{
-		first = coder->rdongle;
-		second = coder->ldongle;
-	}
-	else
-	{
-		first = coder->ldongle;
-		second = coder->rdongle;
-	}
-
+	assign_dongles(coder, &first, &second);
 	register_dongle(coder, first);
 	if (coder->config->number_of_coders > 1)
 		register_dongle(coder, second);
-
 	if (!wait_and_take(coder, first))
 		return (0);
-
 	if (coder->config->number_of_coders == 1)
 	{
 		while (!end_simulation(coder->config))
@@ -105,7 +98,6 @@ int	get_dongles(t_coder *coder)
 		release_dongle(first, coder->config);
 		return (0);
 	}
-
 	if (!wait_and_take(coder, second))
 	{
 		release_dongle(first, coder->config);

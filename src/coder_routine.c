@@ -18,6 +18,14 @@ static void	odd_first(t_coder *coder)
 		usleep(500);
 }
 
+void	add_to_queue(t_dongle *dongle, t_node *node, int is_edf)
+{
+	if (is_edf != 0)
+		ft_add_sorted(&dongle->queue, node);
+	else
+		ft_add_back(&dongle->queue, node);
+}
+
 int	compiling(t_coder *coder)
 {
 	t_config	*config;
