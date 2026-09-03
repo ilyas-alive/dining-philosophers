@@ -1,4 +1,0 @@
-burnout
-176
-no_burnout
-0
