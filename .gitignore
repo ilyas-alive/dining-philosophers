@@ -1,10 +1,6 @@
 #Custom
-a
-cat.txt
-*tst
 codexion
-test.sh
-/test_logs
+tests/
 
 # Prerequisites
 *.d
