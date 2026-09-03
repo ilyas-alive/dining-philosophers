@@ -32,26 +32,40 @@ static int	wait_for_turn(t_coder *coder, t_dongle *dongle)
 			return (0);
 		}
 		if (dongle->queue && dongle->queue->coder == coder
-			&& dongle->available && get_time() >= dongle->cooldown_end)
-			break ;
-		ms_to_timespec(dongle, &ts);
-		pthread_cond_timedwait(&dongle->cond, &dongle->mutex, &ts);
+			&& dongle->available)
+		{
+			if (get_time() >= dongle->cooldown_end)
+				break ;
+			ms_to_timespec(dongle, &ts);
+			pthread_cond_timedwait(&dongle->cond, &dongle->mutex, &ts);
+		}
+		else
+			pthread_cond_wait(&dongle->cond, &dongle->mutex);
 	}
 	return (1);
 }
 
-int	take_dongle(t_coder *coder, t_dongle *dongle)
+static void	register_dongle(t_coder *coder, t_dongle *dongle)
 {
 	t_node	*node;
 
 	node = ft_new_node(coder);
 	if (!node)
-		return (0);
+		return ;
 	pthread_mutex_lock(&coder->time_mutex);
-	node->priority = coder->time_compiled + coder->config->time_to_burnout;
+	node->priority = get_time();
+	if (coder->config->is_edf)
+		node->priority = coder->time_compiled + coder->config->time_to_burnout;
 	pthread_mutex_unlock(&coder->time_mutex);
+	
 	pthread_mutex_lock(&dongle->mutex);
 	add_to_queue(dongle, node, coder->config->is_edf);
+	pthread_mutex_unlock(&dongle->mutex);
+}
+
+static int	wait_and_take(t_coder *coder, t_dongle *dongle)
+{
+	pthread_mutex_lock(&dongle->mutex);
 	if (!wait_for_turn(coder, dongle))
 		return (0);
 	ft_pop_node(&dongle->queue);
@@ -71,15 +85,19 @@ int	get_dongles(t_coder *coder)
 		first = coder->rdongle;
 		second = coder->ldongle;
 	}
-
 	else
 	{
 		first = coder->ldongle;
 		second = coder->rdongle;
 	}
 
-	if (!take_dongle(coder, first))
+	register_dongle(coder, first);
+	if (coder->config->number_of_coders > 1)
+		register_dongle(coder, second);
+
+	if (!wait_and_take(coder, first))
 		return (0);
+
 	if (coder->config->number_of_coders == 1)
 	{
 		while (!end_simulation(coder->config))
@@ -87,7 +105,8 @@ int	get_dongles(t_coder *coder)
 		release_dongle(first, coder->config);
 		return (0);
 	}
-	if (!take_dongle(coder, second))
+
+	if (!wait_and_take(coder, second))
 	{
 		release_dongle(first, coder->config);
 		return (0);

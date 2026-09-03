@@ -58,7 +58,9 @@ void	wake_dongles(t_config *config)
 	i = 0;
 	while (i < config->number_of_coders)
 	{
+		pthread_mutex_lock(&config->dongles[i].mutex);
 		pthread_cond_broadcast(&config->dongles[i].cond);
+		pthread_mutex_unlock(&config->dongles[i].mutex);
 		i++;
 	}
 }

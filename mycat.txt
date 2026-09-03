@@ -1,0 +1,903 @@
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   codexion.h                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: iel-ghan <iel-ghan@student.1337.ma>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/04/10 10:32:32 by iel-ghan          #+#    #+#             */
+/*   Updated: 2026/08/26 17:34:29 by iel-ghan         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+#ifndef CODEXION_H
+# define CODEXION_H
+
+# include <sys/time.h>
+# include <pthread.h>
+# include <unistd.h>
+# include <string.h>
+# include <stdlib.h>
+# include <stdio.h>
+# include <time.h>
+
+typedef struct s_dongle	t_dongle;
+typedef struct s_coder	t_coder;
+typedef struct s_node	t_node;
+typedef struct s_config	t_config;
+
+struct	s_config
+{
+	int				number_of_coders;
+	long			time_to_burnout;
+	long			time_to_compile;
+	long			time_to_debug;
+	long			time_to_refactor;
+	long			compiles_needed;
+	long			dongle_cooldown;
+	int				is_edf;
+	long			start_time;
+	int				coders_finished;
+	int				is_over;
+	pthread_mutex_t	over_lock;
+	pthread_mutex_t	print_lock;
+	t_dongle		*dongles;
+	t_coder			*coders;
+	pthread_t		monitor;
+};
+
+struct	s_dongle
+{
+	int				available;
+	long			cooldown_time;
+	long			cooldown_end;
+	pthread_mutex_t	mutex;
+	pthread_cond_t	cond;
+	t_node			*queue;
+};
+
+struct	s_coder
+{
+	int				id;
+	int				count;
+	long			time_compiled;
+	pthread_mutex_t	time_mutex;
+	pthread_t		thread;
+	t_dongle		*rdongle;
+	t_dongle		*ldongle;
+	t_config		*config;
+};
+
+struct	s_node
+{
+	t_coder			*coder;
+	long			priority;
+	struct s_node	*next;
+};
+
+//parsing
+int		digit_check(char **str);
+int		fifo_or_edf(char **ar);
+int		check_input(int argc, char **ar);
+int		last_check(t_config *config);
+void	make_config(t_config *config, char **ar);
+
+//init
+void	dongle_init(t_dongle *dongle, long cooldown_time);
+void	init_dongles(t_config *config);
+void	coder_init(t_coder *coder, t_config *config, int position);
+void	init_coders(t_config *config);
+void	init_config(t_config *config);
+
+//queue
+t_node	*ft_new_node(t_coder *coder);
+t_coder	*ft_pop_node(t_node **queue);
+void	ft_add_back(t_node **queue, t_node *new);
+void	ft_add_sorted(t_node **queue, t_node *new);
+void	ft_remove_node(t_node **queue, t_coder *coder);
+
+//time
+long	get_time(void);
+void	ft_sleep(long ms, t_config *config);
+void	ms_to_timespec(t_dongle *dongle, struct timespec *ts);
+
+//routine
+int		take_dongle(t_coder *coder, t_dongle *dongle);
+int		get_dongles(t_coder *coder);
+int		compiling(t_coder *coder);
+void	*coder_routine(void *data);
+void	*monitor_routine(void *data);
+
+//utils
+int		end_simulation(t_config *config);
+int		safe_count(t_coder *coder);
+void	ft_log(char *message, t_coder *coder);
+void	release_dongle(t_dongle *dongle, t_config *config);
+void	release_dongles(t_coder *coder);
+void	wake_dongles(t_config *config);
+
+//threads
+int		start_threads(t_config *config);
+void	wait_threads(t_config *config);
+
+//cleanup
+void	free_config(t_config *config);
+
+#endif
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   main.c                                             :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: iel-ghan <iel-ghan@student.1337.ma>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/04/10 08:18:46 by iel-ghan          #+#    #+#             */
+/*   Updated: 2026/08/26 17:35:04 by iel-ghan         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+#include "codexion.h"
+
+static void	abort_threads(t_config *config, int count)
+{
+	pthread_mutex_lock(&config->over_lock);
+	config->is_over = 1;
+	pthread_mutex_unlock(&config->over_lock);
+	wake_dongles(config);
+	while (count > 0)
+	{
+		count--;
+		pthread_join(config->coders[count].thread, NULL);
+	}
+	pthread_join(config->monitor, NULL);
+}
+
+int	start_threads(t_config *config)
+{
+	int	i;
+
+	if (pthread_create(&config->monitor, NULL, monitor_routine, config) != 0)
+		return (0);
+	i = 0;
+	while (i < config->number_of_coders)
+	{
+		if (pthread_create(&config->coders[i].thread, NULL,
+				coder_routine, &config->coders[i]) != 0)
+		{
+			abort_threads(config, i);
+			return (0);
+		}
+		i++;
+	}
+	return (1);
+}
+
+void	wait_threads(t_config *config)
+{
+	int	i;
+
+	i = 0;
+	while (i < config->number_of_coders)
+	{
+		pthread_join(config->coders[i].thread, NULL);
+		i++;
+	}
+	pthread_join(config->monitor, NULL);
+}
+
+int	main(int argc, char **argv)
+{
+	t_config	config;
+
+	memset(&config, 0, sizeof(t_config));
+	if (check_input(argc, argv) == 0)
+	{
+		write(2, "Error: invalid arguments\n", 25);
+		return (1);
+	}
+	make_config(&config, argv);
+	if (last_check(&config) == 0)
+	{
+		write(2, "Error: invalid arguments\n", 25);
+		return (1);
+	}
+	init_config(&config);
+	if (start_threads(&config) == 0)
+	{
+		free_config(&config);
+		return (1);
+	}
+	wait_threads(&config);
+	free_config(&config);
+	return (0);
+}
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   parse.c                                            :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: iel-ghan <iel-ghan@student.1337.ma>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/04/11 11:55:41 by iel-ghan          #+#    #+#             */
+/*   Updated: 2026/08/26 17:51:53 by iel-ghan         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+#include "codexion.h"
+
+int	digit_check(char **str)
+{
+	int	i;
+	int	j;
+
+	i = 1;
+	while (i < 8)
+	{
+		j = 0;
+		while (str[i][j] == ' '
+			|| (str[i][j] >= 9 && str[i][j] <= 13))
+			j++;
+		if (str[i][j] == '+')
+			j++;
+		if (str[i][j] < '0' || str[i][j] > '9')
+			return (0);
+		while (str[i][j] >= '0' && str[i][j] <= '9')
+			j++;
+		while (str[i][j] == ' '
+			|| (str[i][j] >= 9 && str[i][j] <= 13))
+			j++;
+		if (str[i][j] != '\0')
+			return (0);
+		i++;
+	}
+	return (1);
+}
+
+int	fifo_or_edf(char **ar)
+{
+	if (strcmp(ar[8], "fifo") == 0)
+		return (1);
+	if (strcmp(ar[8], "edf") == 0)
+		return (1);
+	return (0);
+}
+
+int	check_input(int argc, char **ar)
+{
+	if (argc != 9)
+		return (0);
+	if (!digit_check(ar))
+		return (0);
+	if (!fifo_or_edf(ar))
+		return (0);
+	return (1);
+}
+
+int	last_check(t_config *config)
+{
+	if (config->number_of_coders <= 0
+		|| config->time_to_burnout <= 0
+		|| config->time_to_compile <= 0
+		|| config->time_to_debug < 0
+		|| config->time_to_refactor < 0
+		|| config->compiles_needed < 0
+		|| config->dongle_cooldown < 0)
+		return (0);
+	return (1);
+
+}
+
+void	make_config(t_config *config, char **ar)
+{
+	config->number_of_coders = (int)atoi(ar[1]);
+	config->time_to_burnout = (long)atoi(ar[2]);
+	config->time_to_compile = (long)atoi(ar[3]);
+	config->time_to_debug = (long)atoi(ar[4]);
+	config->time_to_refactor = (long)atoi(ar[5]);
+	config->compiles_needed = (long)atoi(ar[6]);
+	config->dongle_cooldown = (long)atoi(ar[7]);
+	config->is_edf = (strcmp(ar[8], "edf") == 0);
+}
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   queues.c                                           :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: iel-ghan <iel-ghan@student.1337.ma>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/07/13 10:45:51 by iel-ghan          #+#    #+#             */
+/*   Updated: 2026/08/26 17:35:49 by iel-ghan         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+#include "codexion.h"
+
+t_node	*ft_new_node(t_coder *coder)
+{
+	t_node	*node;
+
+	node = (t_node *)malloc(sizeof(t_node));
+	if (!node)
+		return (NULL);
+	node->coder = coder;
+	node->priority = 0;
+	node->next = NULL;
+	return (node);
+}
+
+t_coder	*ft_pop_node(t_node **queue)
+{
+	t_node	*first;
+	t_coder	*coder;
+
+	if (!queue || !*queue)
+		return (NULL);
+	first = *queue;
+	coder = first->coder;
+	*queue = first->next;
+	free(first);
+	return (coder);
+}
+
+void	ft_add_back(t_node **queue, t_node *new)
+{
+	t_node	*curr;
+
+	if (!queue || !new)
+		return ;
+	if (!*queue)
+	{
+		*queue = new;
+		return ;
+	}
+	curr = *queue;
+	while (curr->next != NULL)
+		curr = curr->next;
+	curr->next = new;
+}
+
+void	ft_add_sorted(t_node **queue, t_node *new)
+{
+	t_node	*curr;
+
+	if (!queue || !new)
+		return ;
+	if (!*queue || new->priority < (*queue)->priority
+		|| (new->priority == (*queue)->priority
+			&& new->coder->id < (*queue)->coder->id))
+	{
+		new->next = *queue;
+		*queue = new;
+		return ;
+	}
+	curr = *queue;
+	while (curr->next && (curr->next->priority < new->priority
+			|| (curr->next->priority == new->priority
+				&& curr->next->coder->id < new->coder->id)))
+		curr = curr->next;
+	new->next = curr->next;
+	curr->next = new;
+}
+
+void	ft_remove_node(t_node **queue, t_coder *coder)
+{
+	t_node	*curr;
+	t_node	*target;
+
+	if (!queue || !*queue)
+		return ;
+	if ((*queue)->coder == coder)
+	{
+		target = *queue;
+		*queue = target->next;
+		free(target);
+		return ;
+	}
+	curr = *queue;
+	while (curr->next && curr->next->coder != coder)
+		curr = curr->next;
+	if (curr->next)
+	{
+		target = curr->next;
+		curr->next = target->next;
+		free(target);
+	}
+}
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   init_config.c                                      :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: iel-ghan <iel-ghan@student.1337.ma>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/07/20 10:59:08 by iel-ghan          #+#    #+#             */
+/*   Updated: 2026/08/26 17:34:52 by iel-ghan         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+#include "codexion.h"
+
+void	dongle_init(t_dongle *dongle, long cooldown_time)
+{
+	memset(dongle, 0, sizeof(t_dongle));
+	dongle->available = 1;
+	dongle->cooldown_time = cooldown_time;
+	pthread_mutex_init(&dongle->mutex, NULL);
+	pthread_cond_init(&dongle->cond, NULL);
+}
+
+void	init_dongles(t_config *config)
+{
+	int	i;
+
+	config->dongles = malloc(sizeof(t_dongle) * config->number_of_coders);
+	if (!config->dongles)
+		return ;
+	i = 0;
+	while (i < config->number_of_coders)
+	{
+		dongle_init(&config->dongles[i], config->dongle_cooldown);
+		i++;
+	}
+}
+
+void	coder_init(t_coder *coder, t_config *config, int position)
+{
+	int	left_i;
+	int	right_i;
+
+	left_i = position;
+	right_i = (position + 1) % config->number_of_coders;
+	coder->id = position;
+	coder->count = 0;
+	coder->time_compiled = config->start_time;
+	coder->config = config;
+	coder->ldongle = &config->dongles[left_i];
+	coder->rdongle = &config->dongles[right_i];
+	pthread_mutex_init(&coder->time_mutex, NULL);
+}
+
+void	init_coders(t_config *config)
+{
+	int	i;
+
+	config->coders = malloc(sizeof(t_coder) * config->number_of_coders);
+	if (!config->coders)
+		return ;
+	i = 0;
+	while (i < config->number_of_coders)
+	{
+		coder_init(&config->coders[i], config, i);
+		i++;
+	}
+}
+
+void	init_config(t_config *config)
+{
+	config->start_time = get_time();
+	config->coders_finished = 0;
+	config->is_over = 0;
+	pthread_mutex_init(&config->over_lock, NULL);
+	pthread_mutex_init(&config->print_lock, NULL);
+	init_dongles(config);
+	init_coders(config);
+}
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   get_time.c                                         :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: iel-ghan <iel-ghan@student.1337.ma>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/08/18 19:36:36 by iel-ghan          #+#    #+#             */
+/*   Updated: 2026/08/18 19:36:51 by iel-ghan         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#include "codexion.h"
+
+long	get_time(void)
+{
+	struct timeval	tv;
+
+	if (gettimeofday(&tv, NULL) != 0)
+		return (0);
+	return ((tv.tv_sec * 1000L) + (tv.tv_usec / 1000L));
+}
+
+void	ms_to_timespec(t_dongle *dongle, struct timespec *ts)
+{
+	struct timeval	tv;
+	long			current_time;
+	long			remaining_ms;
+
+	gettimeofday(&tv, NULL);
+	current_time = (tv.tv_sec * 1000L) + (tv.tv_usec / 1000L);
+	remaining_ms = (dongle->cooldown_end - current_time) + 1;
+	if (remaining_ms < 1)
+		remaining_ms = 1;
+	ts->tv_sec = tv.tv_sec + (remaining_ms / 1000L);
+	ts->tv_nsec = (tv.tv_usec * 1000L) + ((remaining_ms % 1000L) * 1000000L);
+	if (ts->tv_nsec >= 1000000000L)
+	{
+		ts->tv_sec += ts->tv_nsec / 1000000000L;
+		ts->tv_nsec = ts->tv_nsec % 1000000000L;
+	}
+}
+
+void	ft_sleep(long ms, t_config *config)
+{
+	long	wake_time;
+
+	wake_time = get_time() + ms;
+	while (get_time() < wake_time)
+	{
+		if (end_simulation(config))
+			break ;
+		usleep(100);
+	}
+}
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   free.c                                             :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: iel-ghan <iel-ghan@student.1337.ma>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/08/08 18:25:09 by iel-ghan          #+#    #+#             */
+/*   Updated: 2026/08/26 17:33:00 by iel-ghan         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#include "codexion.h"
+
+static void	destroy_elements(t_config *config)
+{
+	int	i;
+
+	i = 0;
+	while (i < config->number_of_coders)
+	{
+		pthread_mutex_destroy(&config->dongles[i].mutex);
+		pthread_cond_destroy(&config->dongles[i].cond);
+		pthread_mutex_destroy(&config->coders[i].time_mutex);
+		i++;
+	}
+}
+
+void	free_config(t_config *config)
+{
+	if (!config)
+		return ;
+	destroy_elements(config);
+	if (config->dongles)
+	{
+		free(config->dongles);
+		config->dongles = NULL;
+	}
+	if (config->coders)
+	{
+		free(config->coders);
+		config->coders = NULL;
+	}
+	pthread_mutex_destroy(&config->over_lock);
+	pthread_mutex_destroy(&config->print_lock);
+}
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   coder_routine.c                                    :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: iel-ghan <iel-ghan@student.1337.ma>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/08/05 13:03:59 by iel-ghan          #+#    #+#             */
+/*   Updated: 2026/09/01 13:42:20 by iel-ghan         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#include "codexion.h"
+
+//static void	odd_first(t_coder *coder)
+//{
+//	if ((coder->id % 2) != 0)
+//		usleep(500);
+//}
+
+int	compiling(t_coder *coder)
+{
+	t_config	*config;
+
+	config = coder->config;
+	if (!get_dongles(coder))
+		return (0);
+	if (end_simulation(config))
+	{
+		release_dongles(coder);
+		return (0);
+	}
+	pthread_mutex_lock(&coder->time_mutex);
+	coder->time_compiled = get_time();
+	pthread_mutex_unlock(&coder->time_mutex);
+	ft_log("is compiling", coder);
+	ft_sleep(config->time_to_compile, config);
+	release_dongles(coder);
+	return (safe_count(coder));
+}
+
+static int	coder_cycle_step(t_coder *coder, t_config *config)
+{
+	if (!compiling(coder) || end_simulation(config))
+		return (0);
+	ft_log("is debugging", coder);
+	ft_sleep(config->time_to_debug, config);
+	if (end_simulation(config))
+		return (0);
+	ft_log("is refactoring", coder);
+	ft_sleep(config->time_to_refactor, config);
+	usleep(100);
+	return (1);
+}
+
+void	*coder_routine(void *data)
+{
+	t_coder		*coder;
+	t_config	*config;
+
+	coder = (t_coder *)data;
+	config = coder->config;
+//	odd_first(coder);
+	while (!end_simulation(config))
+	{
+		if (!coder_cycle_step(coder, config))
+			break ;
+	}
+	return (NULL);
+}
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   monitor.c                                          :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: iel-ghan <iel-ghan@student.1337.ma>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/08/06 13:37:50 by iel-ghan          #+#    #+#             */
+/*   Updated: 2026/08/26 17:35:24 by iel-ghan         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+
+#include "codexion.h"
+
+static int	is_coder_burned(t_coder *coder, long now, t_config *config)
+{
+	long	last_meal;
+	int		compiled_cnt;
+
+	pthread_mutex_lock(&coder->time_mutex);
+	last_meal = coder->time_compiled;
+	compiled_cnt = coder->count;
+	pthread_mutex_unlock(&coder->time_mutex);
+	if (compiled_cnt < config->compiles_needed)
+	{
+		if ((now - last_meal) >= config->time_to_burnout)
+			return (1);
+	}
+	return (0);
+}
+
+static int	burnout_check(t_config *config, long now)
+{
+	int	i;
+
+	i = 0;
+	while (i < config->number_of_coders)
+	{
+		if (is_coder_burned(&config->coders[i], now, config))
+		{
+			pthread_mutex_lock(&config->over_lock);
+			config->is_over = 1;
+			pthread_mutex_unlock(&config->over_lock);
+			wake_dongles(config);
+			usleep(10);
+			ft_log("burned out", &config->coders[i]);
+			return (1);
+		}
+		i++;
+	}
+	return (0);
+}
+
+void	wake_dongles(t_config *config)
+{
+	int	i;
+
+	i = 0;
+	while (i < config->number_of_coders)
+	{
+		pthread_cond_broadcast(&config->dongles[i].cond);
+		i++;
+	}
+}
+
+void	*monitor_routine(void *data)
+{
+	t_config	*config;
+
+	config = (t_config *)data;
+	while (end_simulation(config) == 0)
+	{
+		if (burnout_check(config, get_time()))
+			break ;
+		usleep(100);
+	}
+	return (NULL);
+}
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   routine.c                                          :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: iel-ghan <iel-ghan@student.1337.ma>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/07/30 04:42:36 by iel-ghan          #+#    #+#             */
+/*   Updated: 2026/09/01 13:44:06 by iel-ghan         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+#include "codexion.h"
+
+static void	add_to_queue(t_dongle *dongle, t_node *node, int is_edf)
+{
+	if (is_edf != 0)
+		ft_add_sorted(&dongle->queue, node);
+	else
+		ft_add_back(&dongle->queue, node);
+}
+
+static int	wait_for_turn(t_coder *coder, t_dongle *dongle)
+{
+	struct timespec	ts;
+
+	while (1)
+	{
+		if (end_simulation(coder->config))
+		{
+			ft_remove_node(&dongle->queue, coder);
+			pthread_mutex_unlock(&dongle->mutex);
+			return (0);
+		}
+		if (dongle->queue && dongle->queue->coder == coder
+			&& dongle->available && get_time() >= dongle->cooldown_end)
+			break ;
+		ms_to_timespec(dongle, &ts);
+		pthread_cond_timedwait(&dongle->cond, &dongle->mutex, &ts);
+	}
+	return (1);
+}
+
+int	take_dongle(t_coder *coder, t_dongle *dongle)
+{
+	t_node	*node;
+
+	node = ft_new_node(coder);
+	if (!node)
+		return (0);
+	pthread_mutex_lock(&coder->time_mutex);
+	node->priority = coder->time_compiled + coder->config->time_to_burnout;
+	pthread_mutex_unlock(&coder->time_mutex);
+	pthread_mutex_lock(&dongle->mutex);
+	add_to_queue(dongle, node, coder->config->is_edf);
+	if (!wait_for_turn(coder, dongle))
+		return (0);
+	ft_pop_node(&dongle->queue);
+	dongle->available = 0;
+	pthread_mutex_unlock(&dongle->mutex);
+	ft_log("has taken a dongle", coder);
+	return (1);
+}
+
+int	get_dongles(t_coder *coder)
+{
+	t_dongle	*first;
+	t_dongle	*second;
+
+	if (coder->id == (coder->config->number_of_coders - 1))
+	{
+		first = coder->rdongle;
+		second = coder->ldongle;
+	}
+
+	else
+	{
+		first = coder->ldongle;
+		second = coder->rdongle;
+	}
+
+	if (!take_dongle(coder, first))
+		return (0);
+	if (coder->config->number_of_coders == 1)
+	{
+		while (!end_simulation(coder->config))
+			usleep(200);
+		release_dongle(first, coder->config);
+		return (0);
+	}
+	if (!take_dongle(coder, second))
+	{
+		release_dongle(first, coder->config);
+		return (0);
+	}
+	return (1);
+}
+/* ************************************************************************** */
+/*                                                                            */
+/*                                                        :::      ::::::::   */
+/*   utils.c                                            :+:      :+:    :+:   */
+/*                                                    +:+ +:+         +:+     */
+/*   By: iel-ghan <iel-ghan@student.1337.ma>        +#+  +:+       +#+        */
+/*                                                +#+#+#+#+#+   +#+           */
+/*   Created: 2026/07/25 15:24:44 by iel-ghan          #+#    #+#             */
+/*   Updated: 2026/08/26 17:36:16 by iel-ghan         ###   ########.fr       */
+/*                                                                            */
+/* ************************************************************************** */
+#include "codexion.h"
+
+int	end_simulation(t_config *config)
+{
+	int	status;
+
+	pthread_mutex_lock(&config->over_lock);
+	status = config->is_over;
+	pthread_mutex_unlock(&config->over_lock);
+	return (status);
+}
+
+int	safe_count(t_coder *coder)
+{
+	t_config	*config;
+	int			completed;
+	int			all_done;
+
+	config = coder->config;
+	pthread_mutex_lock(&coder->time_mutex);
+	coder->count += 1;
+	completed = (coder->count >= config->compiles_needed);
+	pthread_mutex_unlock(&coder->time_mutex);
+	if (!completed)
+		return (1);
+	pthread_mutex_lock(&config->over_lock);
+	config->coders_finished += 1;
+	all_done = (config->coders_finished >= config->number_of_coders);
+	if (all_done)
+		config->is_over = 1;
+	pthread_mutex_unlock(&config->over_lock);
+	if (all_done)
+		wake_dongles(config);
+	return (0);
+}
+
+void	ft_log(char *message, t_coder *coder)
+{
+	t_config	*config;
+	long		timestamp;
+	int			simulation_ended;
+
+	config = coder->config;
+	simulation_ended = end_simulation(config);
+	timestamp = get_time() - config->start_time;
+	pthread_mutex_lock(&config->print_lock);
+	if (!simulation_ended || strcmp(message, "burned out") == 0)
+		printf("%ld %d %s\n", timestamp, coder->id + 1, message);
+	pthread_mutex_unlock(&config->print_lock);
+}
+
+void	release_dongle(t_dongle *dongle, t_config *config)
+{
+	long	release_timestamp;
+
+	release_timestamp = get_time();
+	pthread_mutex_lock(&dongle->mutex);
+	dongle->available = 1;
+	dongle->cooldown_end = release_timestamp + config->dongle_cooldown;
+	pthread_cond_broadcast(&dongle->cond);
+	pthread_mutex_unlock(&dongle->mutex);
+}
+
+void	release_dongles(t_coder *coder)
+{
+	release_dongle(coder->ldongle, coder->config);
+	release_dongle(coder->rdongle, coder->config);
+}
