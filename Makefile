@@ -32,8 +32,3 @@ fclean: clean
 	rm -f $(NAME)
 
 re: fclean all
-
-run: $(NAME)
-	./$(NAME) 5 800 200 200 200 3 100 edf
-
-# -g -fsanitize=address
