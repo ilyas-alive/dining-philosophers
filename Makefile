@@ -12,7 +12,8 @@ SRCS = src/main.c \
        src/coder_routine.c \
        src/monitor.c \
        src/routine.c \
-       src/utils.c
+       src/utils.c \
+	   src/ft_atn.c
 
 OBJS = $(SRCS:.c=.o)
 

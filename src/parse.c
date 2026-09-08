@@ -74,12 +74,12 @@ int	last_check(t_config *config)
 
 void	make_config(t_config *config, char **ar)
 {
-	config->number_of_coders = (int)atoi(ar[1]);
-	config->time_to_burnout = (long)atoi(ar[2]);
-	config->time_to_compile = (long)atoi(ar[3]);
-	config->time_to_debug = (long)atoi(ar[4]);
-	config->time_to_refactor = (long)atoi(ar[5]);
-	config->compiles_needed = (long)atoi(ar[6]);
-	config->dongle_cooldown = (long)atoi(ar[7]);
+	config->number_of_coders = ft_atoi(ar[1]);
+	config->time_to_burnout = ft_atol(ar[2]);
+	config->time_to_compile = ft_atol(ar[3]);
+	config->time_to_debug = ft_atol(ar[4]);
+	config->time_to_refactor = ft_atol(ar[5]);
+	config->compiles_needed = ft_atoi(ar[6]);
+	config->dongle_cooldown = ft_atol(ar[7]);
 	config->is_edf = (strcmp(ar[8], "edf") == 0);
 }

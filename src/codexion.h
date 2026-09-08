@@ -15,6 +15,7 @@
 # include <sys/time.h>
 # include <pthread.h>
 # include <unistd.h>
+# include <limits.h>
 # include <string.h>
 # include <stdlib.h>
 # include <stdio.h>
@@ -32,7 +33,7 @@ struct	s_config
 	long			time_to_compile;
 	long			time_to_debug;
 	long			time_to_refactor;
-	long			compiles_needed;
+	int				compiles_needed;
 	long			dongle_cooldown;
 	int				is_edf;
 	long			start_time;
@@ -76,6 +77,8 @@ struct	s_node
 
 //parsing
 int		digit_check(char **str);
+int		ft_atoi(char *str);
+long	ft_atol(char *str);
 int		fifo_or_edf(char **ar);
 int		check_input(int argc, char **ar);
 int		last_check(t_config *config);
