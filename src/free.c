@@ -19,9 +19,15 @@ static void	destroy_elements(t_config *config)
 	i = 0;
 	while (i < config->number_of_coders)
 	{
-		pthread_mutex_destroy(&config->dongles[i].mutex);
-		pthread_cond_destroy(&config->dongles[i].cond);
-		pthread_mutex_destroy(&config->coders[i].time_mutex);
+		if (config->dongles)
+		{
+			pthread_mutex_destroy(&config->dongles[i].mutex);
+			pthread_cond_destroy(&config->dongles[i].cond);
+		}
+		if (config->coders)
+		{
+			pthread_mutex_destroy(&config->coders[i].time_mutex);
+		}
 		i++;
 	}
 }

@@ -20,19 +20,20 @@ void	dongle_init(t_dongle *dongle, long cooldown_time)
 	pthread_cond_init(&dongle->cond, NULL);
 }
 
-void	init_dongles(t_config *config)
+int	init_dongles(t_config *config)
 {
 	int	i;
 
 	config->dongles = malloc(sizeof(t_dongle) * config->number_of_coders);
 	if (!config->dongles)
-		return ;
+		return (0);
 	i = 0;
 	while (i < config->number_of_coders)
 	{
 		dongle_init(&config->dongles[i], config->dongle_cooldown);
 		i++;
 	}
+	return (1);
 }
 
 void	coder_init(t_coder *coder, t_config *config, int position)
@@ -51,28 +52,32 @@ void	coder_init(t_coder *coder, t_config *config, int position)
 	pthread_mutex_init(&coder->time_mutex, NULL);
 }
 
-void	init_coders(t_config *config)
+int	init_coders(t_config *config)
 {
 	int	i;
 
 	config->coders = malloc(sizeof(t_coder) * config->number_of_coders);
 	if (!config->coders)
-		return ;
+		return (0);
 	i = 0;
 	while (i < config->number_of_coders)
 	{
 		coder_init(&config->coders[i], config, i);
 		i++;
 	}
+	return (1);
 }
 
-void	init_config(t_config *config)
+int	init_config(t_config *config)
 {
 	config->start_time = get_time();
 	config->coders_finished = 0;
 	config->is_over = 0;
 	pthread_mutex_init(&config->over_lock, NULL);
 	pthread_mutex_init(&config->print_lock, NULL);
-	init_dongles(config);
-	init_coders(config);
+	if (!init_dongles(config))
+		return (0);
+	if (!init_coders(config))
+		return (0);
+	return (1);
 }

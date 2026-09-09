@@ -63,18 +63,14 @@ int	main(int argc, char **argv)
 	t_config	config;
 
 	memset(&config, 0, sizeof(t_config));
-	if (check_input(argc, argv) == 0)
+	if (parse_and_check(argc, argv, &config) == 0)
+		return (1);
+	if (init_config(&config) == 0)
 	{
-		write(2, "Error: invalid arguments\n", 25);
+		write(2, "Error: Memory allocation failed\n", 32);
+		free_config(&config);
 		return (1);
 	}
-	make_config(&config, argv);
-	if (last_check(&config) == 0)
-	{
-		write(2, "Error: invalid arguments\n", 25);
-		return (1);
-	}
-	init_config(&config);
 	if (start_threads(&config) == 0)
 	{
 		free_config(&config);

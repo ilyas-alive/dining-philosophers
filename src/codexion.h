@@ -86,10 +86,10 @@ void	make_config(t_config *config, char **ar);
 
 //init
 void	dongle_init(t_dongle *dongle, long cooldown_time);
-void	init_dongles(t_config *config);
+int		init_dongles(t_config *config);
 void	coder_init(t_coder *coder, t_config *config, int position);
-void	init_coders(t_config *config);
-void	init_config(t_config *config);
+int		init_coders(t_config *config);
+int		init_config(t_config *config);
 
 //queue
 t_node	*ft_new_node(t_coder *coder);
