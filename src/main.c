@@ -25,6 +25,22 @@ static void	abort_threads(t_config *config, int count)
 	pthread_join(config->monitor, NULL);
 }
 
+static int	parse_and_check(int argc, char **argv, t_config *config)
+{
+	if (check_input(argc, argv) == 0)
+	{
+		write(2, "Error: invalid arguments\n", 25);
+		return (0);
+	}
+	make_config(config, argv);
+	if (last_check(config) == 0)
+	{
+		write(2, "Error: invalid arguments\n", 25);
+		return (0);
+	}
+	return (1);
+}
+
 int	start_threads(t_config *config)
 {
 	int	i;
