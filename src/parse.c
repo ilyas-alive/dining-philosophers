@@ -69,6 +69,8 @@ int	last_check(t_config *config)
 		|| config->compiles_needed < 0
 		|| config->dongle_cooldown < 0)
 		return (0);
+	if (config->number_of_coders > 1000)
+		return (0);
 	return (1);
 }
 
