@@ -61,18 +61,14 @@ void	ft_add_sorted(t_node **queue, t_node *new)
 
 	if (!queue || !new)
 		return ;
-	if (!*queue || new->priority < (*queue)->priority
-		|| (new->priority == (*queue)->priority
-			&& new->coder->id < (*queue)->coder->id))
+	if (!*queue || new->priority < (*queue)->priority)
 	{
 		new->next = *queue;
 		*queue = new;
 		return ;
 	}
 	curr = *queue;
-	while (curr->next && (curr->next->priority < new->priority
-			|| (curr->next->priority == new->priority
-				&& curr->next->coder->id < new->coder->id)))
+	while (curr->next && curr->next->priority <= new->priority)
 		curr = curr->next;
 	new->next = curr->next;
 	curr->next = new;
