@@ -10,10 +10,9 @@
 /*                                                                            */
 /* ************************************************************************** */
 #include "codexion.h"
-
 static int	wait_for_turn(t_coder *coder, t_dongle *dongle)
 {
-	struct timespec	ts;
+	long	remaining;
 
 	while (1)
 	{
@@ -26,17 +25,45 @@ static int	wait_for_turn(t_coder *coder, t_dongle *dongle)
 		if (dongle->queue && dongle->queue->coder == coder
 			&& dongle->available)
 		{
-			if (get_time() >= dongle->cooldown_end)
+			remaining = dongle->cooldown_end - get_time();
+			if (remaining <= 0)
 				break ;
-			ms_to_timespec(dongle, &ts);
-			pthread_cond_timedwait(&dongle->cond, &dongle->mutex, &ts);
+			pthread_mutex_unlock(&dongle->mutex);
+			ft_sleep(remaining, coder->config);
+			pthread_mutex_lock(&dongle->mutex);
 		}
 		else
 			pthread_cond_wait(&dongle->cond, &dongle->mutex);
 	}
 	return (1);
 }
-
+//
+//static int	wait_for_turn(t_coder *coder, t_dongle *dongle)
+//{
+//	struct timespec	ts;
+//
+//	while (1)
+//	{
+//		if (end_simulation(coder->config))
+//		{
+//			ft_remove_node(&dongle->queue, coder);
+//			pthread_mutex_unlock(&dongle->mutex);
+//			return (0);
+//		}
+//		if (dongle->queue && dongle->queue->coder == coder
+//			&& dongle->available)
+//		{
+//			if (get_time() >= dongle->cooldown_end)
+//				break ;
+//			ms_to_timespec(dongle, &ts);
+//			pthread_cond_timedwait(&dongle->cond, &dongle->mutex, &ts);
+//		}
+//		else
+//			pthread_cond_wait(&dongle->cond, &dongle->mutex);
+//	}
+//	return (1);
+//}
+//
 static void	register_dongle(t_coder *coder, t_dongle *dongle)
 {
 	t_node	*node;

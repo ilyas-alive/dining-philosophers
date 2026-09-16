@@ -1,7 +1,7 @@
 NAME = codexion
 
-CC = gcc
-CFLAGS = -Wall -Wextra -Werror -pthread 
+CC = cc
+CFLAGS = -Wall -Wextra -Werror -pthread
 
 SRCS = src/main.c \
        src/parse.c \
@@ -13,7 +13,7 @@ SRCS = src/main.c \
        src/monitor.c \
        src/routine.c \
        src/utils.c \
-	   src/ft_atn.c
+       src/ft_atn.c
 
 OBJS = $(SRCS:.c=.o)
 

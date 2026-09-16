@@ -9,25 +9,27 @@
 /*   Updated: 2026/08/26 17:33:00 by iel-ghan         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
-
 #include "codexion.h"
 
 static void	destroy_elements(t_config *config)
 {
-	int	i;
+	int		i;
+	t_node	*curr;
+	t_node	*next;
 
 	i = 0;
 	while (i < config->number_of_coders)
 	{
-		if (config->dongles)
+		curr = config->dongles[i].queue;
+		while (curr)
 		{
-			pthread_mutex_destroy(&config->dongles[i].mutex);
-			pthread_cond_destroy(&config->dongles[i].cond);
+			next = curr->next;
+			free(curr);
+			curr = next;
 		}
-		if (config->coders)
-		{
-			pthread_mutex_destroy(&config->coders[i].time_mutex);
-		}
+		pthread_mutex_destroy(&config->dongles[i].mutex);
+		pthread_cond_destroy(&config->dongles[i].cond);
+		pthread_mutex_destroy(&config->coders[i].time_mutex);
 		i++;
 	}
 }
